@@ -2,7 +2,6 @@
 
 # 📊 Data-Driven Decisions: Amazon Marketplace Analysis with SQL
 
-![Amazon](images/amazon.png)
 
 ## 🧠 Overview
 This project is a comprehensive SQL-based analysis of Amazon marketplace data. Using PostgreSQL and structured SQL queries, I explored various business metrics such as sales performance, customer behavior, inventory management, shipping delays, and more.
@@ -341,25 +340,17 @@ order by Return_Percentage desc
 
 ### 14. Identify Returning vs. New Customers
 ```sql
-select c.customer_id,CONCAT(c.first_name,' ',c.Last_name) as Name_of_cx,o.order_id,
-	p.product_name,o.order_date,p1.payment_date,s.shipping_date,s.shipping_providers,
-	round(sum(ot.quantity * ot.price_per_unit),0)as Price_order,p1.payment_status
+select c.customer_id,c.first_name,
+	count(o.order_id) as No_of_orders_placed,
+	sum( case when o.order_status='Returned' then 1 else 0 end) as No_of_returned_products,
+	(sum( case when o.order_status='Returned' then 1 else 0 end)*100/count(o.order_id)) as percentage_return_products
 	from customers as c
 	join orders as o
-	on o.customer_id=c.customer_id
-	join order_items as ot
-	on ot.order_id=o.order_id
-	join products as p
-	on p.product_id =ot.product_id
-	join payments as p1
-	on p1.order_id=o.order_id
+	on o.customer_id =c.customer_id
 	join shipping as s
-	on o.order_id =s.order_id
-	where p1.payment_status ='Payment Successed' and o.order_status='Inprogress'
-	group by c.customer_id,CONCAT(c.first_name,' ',c.Last_name),o.order_id,
-	p.product_name,o.order_date,p1.payment_date,p1.payment_status,s.shipping_date,
-	s.shipping_providers
-	order by Price_order desc
+	on s.order_id =o.order_id
+	group by c.customer_id,c.first_name--,s.shipping_providers
+	order by percentage_return_products desc
 ```
 ![Identify Returning vs. New Customers](business_query_results/14.identify_customers.png)
 
@@ -367,20 +358,18 @@ select c.customer_id,CONCAT(c.first_name,' ',c.Last_name) as Name_of_cx,o.order_
 
 ### 15. Top 5 Customers by Orders per State
 ```sql
-SELECT *
-FROM (
-    SELECT
-        c.state,
-        CONCAT(c.first_name, ' ', c.last_name) customers,
-        COUNT(o.order_id) total_orders,
-        SUM(oi.total_sale) total_sale,
-        DENSE_RANK() OVER(PARTITION BY c.state ORDER BY COUNT(o.order_id) DESC) rank
-    FROM orders o
-    JOIN order_items oi ON oi.order_id = o.order_id
-    JOIN customers c ON c.customer_id = o.customer_id
-    GROUP BY 1, 2
-)
-WHERE rank <= 5;
+select * from
+(select c.state_name,c.customer_id,c.first_name,
+	count(o.order_id) as No_of_orders,
+	--sum(ot.quantity * ot.price_per_unit)as Total_sales,
+	Dense_RANK() Over (partition by c.state_name order by count(o.order_id) desc) as Rank_
+	from customers as c
+	join orders as o
+	on o.customer_id =c.customer_id
+	join order_items as ot
+	on ot.order_id =ot.order_id
+	group by c.state_name,c.customer_id,c.first_name) as customer_Rank_Table
+	where Rank_ <=5
 ```
 ![Top 5 Customers by Orders per State](business_query_results/1.top_selling_products.png)
 
@@ -388,15 +377,16 @@ WHERE rank <= 5;
 
 ### 16. Revenue by Shipping Provider
 ```sql
-SELECT
-    s.shipping_providers,
-    COUNT(o.order_id) orders_handled,
-    ROUND(SUM(oi.total_sale)) total_sale,
-    ROUND(COALESCE(AVG(s.return_date - s.shipping_date), 0)) average_days
-FROM orders o
-JOIN order_items oi ON oi.order_id = o.order_id
-JOIN shippings s ON s.order_id = o.order_id
-GROUP BY 1;
+select s.shipping_providers,
+	Round(sum(ot.quantity * ot.price_per_unit),2) as Total_Revenue,
+	AVG(DATEDIFF(DAY,order_date,shipping_date)) as AVG_Delivery_time
+	from shipping as s
+	join orders as o
+	on s.order_id =o.order_id
+	join order_items as ot
+	on ot.order_id =o.order_id
+	group by s.shipping_providers
+
 ```
 ![Revenue by Shipping Provider](business_query_results/16.revenue_by_shipping_provider.png)
 
@@ -404,34 +394,18 @@ GROUP BY 1;
 
 ### 17. Products with Revenue Decline (2023 vs 2024)
 ```sql
-WITH last_year_sale AS (
-    SELECT p.product_id, p.product_name, SUM(oi.total_sale) revenue
-    FROM orders o
-    JOIN order_items oi ON oi.order_id = o.order_id
-    JOIN products p ON p.product_id = oi.product_id
-    WHERE EXTRACT(YEAR FROM o.order_date) = 2023
-    GROUP BY 1, 2
-),
-current_year_sale AS (
-    SELECT p.product_id, p.product_name, SUM(oi.total_sale) revenue
-    FROM orders o
-    JOIN order_items oi ON oi.order_id = o.order_id
-    JOIN products p ON p.product_id = oi.product_id
-    WHERE EXTRACT(YEAR FROM o.order_date) = 2024
-    GROUP BY 1, 2
-)
-SELECT
-    cs.product_id,
-    cs.product_name,
-    ls.revenue last_year_revenue,
-    cs.revenue current_year_revenue,
-    ls.revenue - cs.revenue rev_difference,
-    ROUND((cs.revenue - ls.revenue)::NUMERIC / ls.revenue::NUMERIC * 100, 2) revenue_decrease_ratio
-FROM last_year_sale ls
-JOIN current_year_sale cs ON ls.product_id = cs.product_id
-WHERE ls.revenue > cs.revenue
-ORDER BY 6 DESC
-LIMIT 10;
+select p.product_id,p.product_name,c.category_name,
+	sum(case when DATEPART(year,o.order_date)=2022 then sum(ot.quantity * ot.price_per_unit) else 0 end) as Prev_Year_sales,
+	sum(case when DATEPART(YEAR,o.order_date)=2023 then sum(ot.quantity * ot.price_per_unit) else 0 end) as crr_year_sales
+	from category as c
+	join products as p
+	on p.category_id =c.category_id
+	join order_items as ot
+	on ot.product_id =p.product_id
+	join orders as o
+	on o.order_date =ot.order_id
+	group by p.product_id,p.product_name,c.category_name
+
 ```
 ![Products with Revenue Decline (2023 vs 2024)](business_query_results/17.top_10_products_with_highest_decreasing_revenue_ratio.png)
 
@@ -469,56 +443,53 @@ This procedure replicates the logic of placing an order on an e-commerce platfor
 
 ### 📜 Procedure Code
 ```sql
-CREATE OR REPLACE PROCEDURE add_sales (
-    p_order_id INT,
-    p_customer_id INT,
-    p_seller_id INT,
-    p_order_item_id INT,
-    p_product_id INT,
-    p_quantity INT
-)
-LANGUAGE plpgsql
-AS $$
-DECLARE
-    v_count INT;
-    v_price FLOAT;
-    v_product_name VARCHAR(50);
+CREATE OR ALTER PROCEDURE add_sales
+    @order_id INT,
+    @customer_id INT,
+    @seller_id INT,
+    @order_item_id INT,
+    @product_id INT,
+    @quantity INT
+AS
 BEGIN
-    SELECT price, product_name
-    INTO v_price, v_product_name
+    SET NOCOUNT ON;
+
+    DECLARE 
+        @count INT,
+        @price FLOAT,
+        @product_name VARCHAR(50);
+
+    -- Get product details
+    SELECT 
+        @price = price,
+        @product_name = product_name
     FROM products
-    WHERE product_id = p_product_id;
+    WHERE product_id = @product_id;
 
-    SELECT COUNT(*)
-    INTO v_count
+    -- Check stock
+    SELECT @count = COUNT(*)
     FROM inventory
-    WHERE product_id = p_product_id AND stock >= p_quantity;
+    WHERE product_id = @product_id AND stock >= @quantity;
 
-    IF v_count > 0 THEN
-        INSERT INTO orders (
-            order_id, order_date, customer_id, seller_id
-        )
-        VALUES (
-            p_order_id, CURRENT_DATE, p_customer_id, p_seller_id
-        );
+    IF @count > 0
+    BEGIN
+        INSERT INTO orders (order_id, order_date, customer_id, seller_id)
+        VALUES (@order_id, GETDATE(), @customer_id, @seller_id);
 
-        INSERT INTO order_items (
-            order_item_id, order_id, product_id, quantity, price_per_unit, total_sale
-        )
-        VALUES (
-            p_order_item_id, p_order_id, p_product_id, p_quantity, v_price, v_price * p_quantity
-        );
+        INSERT INTO order_items (order_item_id, order_id, product_id, quantity, price_per_unit)
+        VALUES (@order_item_id, @order_id, @product_id, @quantity, @price);
 
         UPDATE inventory
-        SET stock = stock - p_quantity
-        WHERE product_id = p_product_id;
+        SET stock = stock - @quantity
+        WHERE product_id = @product_id;
 
-        RAISE NOTICE 'Thank you, product "%" has been added and inventory updated.', v_product_name;
+        PRINT 'Thank you, product "' + CAST(@product_name AS VARCHAR(50)) + '" has been added and inventory updated.';
+    END
     ELSE
-        RAISE NOTICE 'Product "%" is not available at the moment.', v_product_name;
-    END IF;
+    BEGIN
+        PRINT 'Product "' + CAST(@product_name AS VARCHAR(50)) + '" is not available at the moment.';
+    END
 END;
-$$;
 ```
 
 ### 🧪 Example Usage
@@ -531,7 +502,7 @@ This procedure simulates a core part of e-commerce operations and demonstrates h
 
 ### 🧠 What I Learned
 - How to declare and use variables inside a stored procedure.
-- How to perform conditional logic and error handling in `PL/pgSQL`.
+- How to perform conditional logic and error handling in `SSMS`.
 - How to use transactions to automate business processes in a database environment.
 - How stored procedures can encapsulate complex logic and ensure consistency across related tables.
 
@@ -546,6 +517,3 @@ This SQL project demonstrates how data can inform strategic decisions in an e-co
 
 From querying to automation with the `add_sales` procedure, this project showcases how data analysis and backend logic can bring clarity to complex business questions and optimize decision-making.
 
-## 📜 License
-
-This project is licensed under the [MIT License](https://opensource.org/licenses/MIT).
