@@ -69,7 +69,7 @@ select  top 10 p.product_id,
 	order by total_sales desc
 
 ```
-![Top Selling Products](business_query_results/1.top_selling_products.png)
+
 
 **Insight**: A small number of products contribute significantly to total revenue and order volume. These are key revenue drivers.
 
@@ -86,7 +86,7 @@ select c.category_id,c.category_name,
 	group by c.category_id,c.category_name
 	order by Revenue_category desc
 ```
-![Revenue by Category](business_query_results/2.revenue_by_category.png)
+
 
 **Insight**: Electronics and related categories account for the highest revenue contribution across the platform.
 
@@ -107,7 +107,6 @@ select c.customer_id, c.first_name as Name_Cx,
 	Having count(o.order_id) >5
 	order by AOV desc
 ```
-![Average Order Value (AOV)](business_query_results/3.average_order_value.png)
 
 **Insight**: Returning customers have significantly higher AOV, suggesting a loyal and valuable customer segment.
 
@@ -123,7 +122,7 @@ select * from
 		group by DATEPART(month,order_date) ,DATEPART(YEAR,order_date)) as Monthly_sales_trend
 		where Year_order= Datepart(Year,SYSDATETIME())-1
 ```
-![Monthly Sales Trend](business_query_results/4.monthly_sales_trend.png)
+
 
 **Insight**: Sales trends fluctuate monthly with noticeable seasonal patterns. Comparing current and previous months helps detect growth or decline.
 
@@ -134,7 +133,6 @@ select (c.customer_id),CONCAT(c.first_name,' ',c.Last_name) as Name_cx
 	where c.customer_id not in (select Distinct customer_id from orders)
 
 ```
-![Customers with No Purchases](business_query_results/5.customers_with_no_purchases.png)
 
 **Insight**: There is a segment of registered users who have not placed any orders — potential for re-engagement campaigns.
 
@@ -158,7 +156,7 @@ select * from
 	where Rank_=1
 	order by Sales_state desc
 ```
-![Best-Selling Categories by State](business_query_results/6.bestselling_categories_by_state.png)
+
 
 **Insight**: Different states show varied preferences, enabling region-specific marketing strategies.
 
@@ -174,7 +172,7 @@ select c.customer_id,CONCAT(c.first_name,' ',c.Last_name) as Name_Cx,
 	on ot.order_id= o.order_id
 	group by c.customer_id,CONCAT(c.first_name,' ',c.Last_name)
 ```
-![Customer Lifetime Value (CLTV)](business_query_results/7.customer_lifetime_value.png)
+
 
 **Insight**: Top customers contribute significantly to revenue. Retaining them is crucial.
 
@@ -189,7 +187,6 @@ select i.inventory_id,p.product_name,i.stock as Stock_left,
 	 on i.product_id=p.product_id
 	 where i.stock <10
 ```
-![Inventory Stock Alerts](business_query_results/8.inventory_stock_alerts.png)
 
 **Insight**: Several high-demand products are at risk of going out of stock, requiring urgent restocking.
 
@@ -215,7 +212,6 @@ select No_of_days_delivery,shipping_providers,count(customer_id) from
 	group by No_of_days_delivery,shipping_providers
 
 ```
-![Shipping Delays](business_query_results/9.shipping_delays.png)
 
 **Insight**: Many orders experience shipping delays beyond 2 days, indicating potential issues with fulfillment partners.
 
@@ -229,7 +225,7 @@ Select p.payment_status,count(p.payment_id) as Total_payments,
 	group by p.payment_status
 	order by Percentage_ desc
 ```
-![Payment Success Rate](business_query_results/10.payment_success_rate.png)
+
 
 **Insight**: While most payments succeed, a notable percentage are either pending or failed, suggesting a need for payment system improvements.
 
@@ -261,7 +257,6 @@ select Rs.seller_id,Rs.seller_name,Rs.origin,--Rs.total_sales,
 	where Rs.Rank_ <=5
 	group by Rs.seller_id,Rs.seller_name,Rs.origin--,Rs.total_sales
 ```
-![Top Performing Sellers](business_query_results/11.top_perfomring_sellers.png)
 
 **Insight**: Top sellers show high order completion rates, but a few face elevated cancellation rates—warranting performance reviews.
 
@@ -278,7 +273,7 @@ select product_id,product_name,Profit_Margin,
 	on p.product_id=ot.product_id
 	group by p.product_id,p.product_name) as Profit_margin_table
 ```
-![Product Profit Margin](business_query_results/12.product_profit_margin.png)
+
 
 **Insight**: Certain products yield significantly higher margins, guiding profitability-focused inventory and pricing strategies.
 
@@ -334,7 +329,6 @@ select top 10 *,
 order by Return_Percentage desc
 
 ```
-![Most Returned Products](business_query_results/13.most_returned_products.png)
 
 **Insight**: Return rates vary by product. High-return items may need review for quality, expectations, or listing accuracy.
 
@@ -352,7 +346,7 @@ select c.customer_id,c.first_name,
 	group by c.customer_id,c.first_name--,s.shipping_providers
 	order by percentage_return_products desc
 ```
-![Identify Returning vs. New Customers](business_query_results/14.identify_customers.png)
+
 
 **Insight**: Customer behavior varies based on return activity—this can be useful for segmentation and tailored engagement.
 
@@ -371,7 +365,7 @@ select * from
 	group by c.state_name,c.customer_id,c.first_name) as customer_Rank_Table
 	where Rank_ <=5
 ```
-![Top 5 Customers by Orders per State](business_query_results/1.top_selling_products.png)
+
 
 **Insight**: Top customers in each state reveal regional power users that drive local revenue.
 
@@ -388,7 +382,6 @@ select s.shipping_providers,
 	group by s.shipping_providers
 
 ```
-![Revenue by Shipping Provider](business_query_results/16.revenue_by_shipping_provider.png)
 
 **Insight**: Shipping providers vary in speed and volume. Some are slower despite handling fewer orders.
 
@@ -407,7 +400,7 @@ select p.product_id,p.product_name,c.category_name,
 	group by p.product_id,p.product_name,c.category_name
 
 ```
-![Products with Revenue Decline (2023 vs 2024)](business_query_results/17.top_10_products_with_highest_decreasing_revenue_ratio.png)
+
 
 **Insight**: Revenue decline detection helps flag underperforming products for reevaluation in 2024.
 
