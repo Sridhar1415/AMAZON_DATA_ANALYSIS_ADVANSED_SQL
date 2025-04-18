@@ -29,7 +29,7 @@ All data is derived from simulated Amazon marketplace records:
 - `shipping.csv`
 - `category.csv`
 
-![EDR for amazon_sql]()
+![EDR for amazon_sql](IMAGES/edr_for_amazon_sql.png)
 
 ## 🛠️ Tools & Technologies
 - **SQL (MS SQL SERVER)** – Core querying and analysis
